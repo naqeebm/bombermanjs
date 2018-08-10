@@ -22,7 +22,7 @@ let tick = 0;
 let timer = null;
 let player = [1, 1, 'white'];
 let speed = 0.14;
-let explosionLength = 4;
+let explosionLength = 2;
 let motion = [0, 0];
 let blocks = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -181,13 +181,13 @@ function drawParticles() {
 
 function drawExplosions() {
   for (let i = 0; i < explosions.length; i++) {
-    drawChar(
-      explosions[i][0],
-      explosions[i][1],
-      TILESIZE / 3,
-      `black`,
-      `rgba(255,0,0,${explosions[i][2] / FPS})`
-    );
+    // drawChar(
+    //   explosions[i][0],
+    //   explosions[i][1],
+    //   TILESIZE / 3,
+    //   `black`,
+    //   `rgba(255,0,0,${explosions[i][2] / FPS})`
+    // );
     ctx.drawImage(
       img,
       81 + explosions[i][3] * 40,
@@ -199,7 +199,6 @@ function drawExplosions() {
       TILESIZE,
       TILESIZE
     );
-    break;
   }
 }
 
@@ -284,13 +283,13 @@ function explodeBomb(bomb) {
         flags[3] = true;
       }
     }
-    if (flags[0] || flags[1] || flags[2] || flags[3]) {
-      addExplosion([bomb[0], bomb[1], FPS, 0]);
-    } else {
-      addExplosion([bomb[0], bomb[1], FPS, 1]);
-    }
 
     count++;
+  }
+  if (explosionLength > 0) {
+    addExplosion([bomb[0], bomb[1], FPS, 1]);
+  } else {
+    addExplosion([bomb[0], bomb[1], FPS, 0]);
   }
 
   for (let x = bomb[0] - 2; x < bomb[0] + 2; x += 1) {
