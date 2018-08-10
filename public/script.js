@@ -181,13 +181,13 @@ function drawParticles() {
 
 function drawExplosions() {
   for (let i = 0; i < explosions.length; i++) {
-    // drawChar(
-    //   explosions[i][0],
-    //   explosions[i][1],
-    //   TILESIZE / 3,
-    //   `black`,
-    //   `rgba(255,0,0,${explosions[i][2] / FPS})`
-    // );
+    drawChar(
+      explosions[i][0],
+      explosions[i][1],
+      TILESIZE / 3,
+      `black`,
+      `rgba(255,0,0,${explosions[i][2] / FPS})`
+    );
     ctx.drawImage(
       img,
       81 + explosions[i][3] * 40,
