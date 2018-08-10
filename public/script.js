@@ -1,3 +1,7 @@
+console.log('connecting to server http://localhost:18081');
+const server = io.connect('http://localhost:18081');
+let id = null;
+
 const canv = document.getElementById('canv');
 const ctx = canv.getContext('2d');
 const img = document.createElement('img');
@@ -5,50 +9,75 @@ img.src = 'imgs/tiles.png';
 
 const TWOPI = 2 * Math.PI;
 const FPS = 60;
-const DEFAULTPLAYERSPEED = 1;
-const DEFAULTG = 4;
 
 canv.height = window.innerHeight;
 canv.width = window.innerWidth;
 const h = canv.height;
 const w = canv.width;
 
+let screen = 'LOAD';
+let loadingPercent = 0;
 const XTILES = 16;
 const YTILES = 16;
 const TILESIZE = 40;
 const DRAWOFFSET = 4;
 
+let edit = false;
+
 let tick = 0;
 let timer = null;
 let player = [1, 1, 'white'];
-let speed = 0.14;
+let char = 0;
+let speed = 0.1;
+let alive = true;
 let explosionLength = 2;
 let motion = [0, 0];
+let current = [1, 1];
 let blocks = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 1],
+  [1, 2, 2, 2, 0, 0, 0, 0, 2, 0, 2, 0, 0, 2, 0, 1],
+  [1, 0, 0, 1, 2, 2, 1, 0, 0, 1, 2, 2, 1, 2, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 2, 0, 2, 0, 1],
+  [1, 2, 2, 2, 0, 2, 2, 2, 2, 0, 2, 0, 0, 2, 2, 1],
+  [1, 0, 0, 1, 2, 2, 1, 0, 0, 1, 2, 2, 1, 2, 2, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 2, 0, 2, 2, 1],
+  [1, 2, 2, 2, 0, 2, 2, 2, 2, 0, 2, 0, 0, 2, 2, 1],
+  [1, 0, 0, 1, 2, 2, 1, 0, 0, 1, 2, 2, 1, 2, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 2, 0, 2, 0, 1],
+  [1, 2, 2, 2, 0, 2, 2, 2, 2, 0, 2, 0, 0, 2, 2, 1],
+  [1, 0, 0, 1, 2, 2, 1, 0, 0, 1, 2, 2, 1, 2, 2, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 1],
+  [1, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+];
+let back = [
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ];
 
+loadingPercent = 50;
 let maxBombs = 32;
-let bombs = [[4, 4, 60]];
+let bombs = [];
 let explosions = [];
 let placingBombs = false;
 
 let particles = [];
+loadingPercent = 100;
 
 function startTimer() {
   if (timer === null) {
@@ -65,7 +94,7 @@ function stopTimer() {
   }
 }
 
-function drawBoard() {
+function drawBoard(blocks) {
   ctx.fillStyle = 'cyan';
   ctx.fillRect(0, 0, canv.width, canv.height);
   ctx.fillStyle = 'grey';
@@ -78,20 +107,20 @@ function drawBoard() {
     for (let y = 0; y < YTILES; y++) {
       switch (blocks[y][x]) {
         case 1:
-          ctx.fillStyle = 'black';
-          ctx.fillRect(
-            x * TILESIZE + 4,
-            y * TILESIZE + 4,
-            TILESIZE - 4,
-            TILESIZE - 4
-          );
-          ctx.fillStyle = 'darkslateblue';
-          ctx.fillRect(
-            x * TILESIZE + 6,
-            y * TILESIZE + 6,
-            TILESIZE - 8,
-            TILESIZE - 8
-          );
+          // ctx.fillStyle = 'black';
+          // ctx.fillRect(
+          //   x * TILESIZE + 4,
+          //   y * TILESIZE + 4,
+          //   TILESIZE - 4,
+          //   TILESIZE - 4
+          // );
+          // ctx.fillStyle = 'darkslateblue';
+          // ctx.fillRect(
+          //   x * TILESIZE + 6,
+          //   y * TILESIZE + 6,
+          //   TILESIZE - 8,
+          //   TILESIZE - 8
+          // );
           ctx.drawImage(
             img,
             0,
@@ -103,7 +132,19 @@ function drawBoard() {
             TILESIZE,
             TILESIZE
           );
-
+          break;
+        case 2:
+          ctx.drawImage(
+            img,
+            121,
+            40,
+            39,
+            39,
+            x * TILESIZE,
+            y * TILESIZE,
+            TILESIZE,
+            TILESIZE
+          );
           break;
         default:
           ctx.fillStyle = 'grey';
@@ -146,7 +187,18 @@ function drawChar(x, y, r, col, fillCol = null) {
 }
 
 function drawPlayer() {
-  drawChar(player[0], player[1], TILESIZE / 3, player[2]);
+  // drawChar(player[0], player[1], TILESIZE / 3, player[2]);
+  ctx.drawImage(
+    img,
+    1 + (motion[1] < 0 ? 2 : motion[0] > 0 ? 1 : 0) * 40,
+    41,
+    38,
+    38,
+    player[0] * TILESIZE,
+    player[1] * TILESIZE,
+    TILESIZE,
+    TILESIZE
+  );
 }
 
 function drawBombs() {
@@ -157,6 +209,18 @@ function drawBombs() {
       TILESIZE / 3 + Math.min(1 / (bombs[i][2] / FPS), TILESIZE / 2),
       'red',
       'brown'
+    );
+    fillText(
+      `${Math.round(bombs[i][2] / FPS)} `,
+      bombs[i][0] + 0.5,
+      bombs[i][1] + 0.75,
+      'black'
+    );
+    fillText(
+      `${Math.round(bombs[i][2] / FPS)} `,
+      bombs[i][0] + 0.45,
+      bombs[i][1] + 0.7,
+      'white'
     );
   }
 }
@@ -208,10 +272,16 @@ function fillInfoText(txt, x, y) {
   ctx.fillText(txt, XTILES * TILESIZE, TILESIZE);
 }
 
+function fillText(txt, x, y, col) {
+  ctx.font = '16px calibri';
+  ctx.fillStyle = col;
+  ctx.fillText(txt, x * TILESIZE, y * TILESIZE);
+}
+
 function fillInfo() {
   fillInfoText(
     `x: ${Math.round(player[0] * 10) / 10} y: ${Math.round(player[1] * 10) /
-      10} mtn: ${motion[0]},${motion[1]}`,
+      10} mtn: ${motion[0]},${motion[1]} current: ${current[0]},${current[1]}`,
     player[0] * TILESIZE,
     player[1] * TILESIZE + (4 * TILESIZE) / 3
   );
@@ -258,6 +328,10 @@ function explodeBomb(bomb) {
     if (!flags[0]) {
       if (blocks[bomb[1] - count][bomb[0]] === 0) {
         addExplosion([bomb[0], bomb[1] - count, FPS - count * 3, 2]);
+      } else if (blocks[bomb[1] - count][bomb[0]] === 2) {
+        addExplosion([bomb[0], bomb[1] - count, FPS - count * 3, 0]);
+        blocks[bomb[1] - count][bomb[0]] = 0;
+        flags[0] = true;
       } else {
         flags[0] = true;
       }
@@ -265,6 +339,10 @@ function explodeBomb(bomb) {
     if (!flags[1]) {
       if (blocks[bomb[1]][bomb[0] - count] === 0) {
         addExplosion([bomb[0] - count, bomb[1], FPS - count * 3, 3]);
+      } else if (blocks[bomb[1]][bomb[0] - count] === 2) {
+        addExplosion([bomb[0] - count, bomb[1], FPS - count * 3, 0]);
+        blocks[bomb[1]][bomb[0] - count] = 0;
+        flags[1] = true;
       } else {
         flags[1] = true;
       }
@@ -272,6 +350,10 @@ function explodeBomb(bomb) {
     if (!flags[2]) {
       if (blocks[bomb[1] + count][bomb[0]] === 0) {
         addExplosion([bomb[0], bomb[1] + count, FPS - count * 3, 2]);
+      } else if (blocks[bomb[1] + count][bomb[0]] === 2) {
+        addExplosion([bomb[0], bomb[1] + count, FPS - count * 3, 0]);
+        blocks[bomb[1] + count][bomb[0]] = 0;
+        flags[2] = true;
       } else {
         flags[2] = true;
       }
@@ -279,6 +361,10 @@ function explodeBomb(bomb) {
     if (!flags[3]) {
       if (blocks[bomb[1]][bomb[0] + count] === 0) {
         addExplosion([bomb[0] + count, bomb[1], FPS - count * 3, 3]);
+      } else if (blocks[bomb[1]][bomb[0] + count] === 2) {
+        addExplosion([bomb[0] + count, bomb[1], FPS - count * 3, 0]);
+        blocks[bomb[1]][bomb[0] + count] = 0;
+        flags[3] = true;
       } else {
         flags[3] = true;
       }
@@ -314,6 +400,22 @@ function addExplosion(data) {
   }
 }
 
+function drawCharSelect(x, y, char, selected, taken) {
+  ctx.drawImage(
+    img,
+    1 + 40 * ((tick * (FPS / 2)) % 2),
+    41 + 40 * char,
+    40,
+    40,
+    x + 2,
+    y + 2,
+    TILESIZE - 4,
+    TILESIZE - 4
+  );
+  ctx.strokeStyle = 'black';
+  ctx.strokeRect(x, y, TILESIZE, TILESIZE);
+}
+
 window.addEventListener('keypress', e => {
   switch (e.key) {
     case 'x':
@@ -334,150 +436,223 @@ window.addEventListener('keypress', e => {
       }
       console.log(final.slice(0, final.length - 1) + ']');
       break;
+    case 'e':
+      edit = !edit;
+      break;
     default:
       break;
   }
 });
 
 window.addEventListener('keydown', e => {
-  switch (e.key) {
-    case 'a':
-      motion[0] = -speed;
-      break;
-    case 'd':
-      motion[0] = speed;
-      break;
-    case 'w':
-      motion[1] = -speed;
-      break;
-    case 's':
-      motion[1] = speed;
-      break;
-    case ' ':
-      placingBombs = true;
-      break;
-    default:
-      break;
+  switch (screen) {
+    case 'PLAY':
+      switch (e.key) {
+        case 'a':
+          motion[0] = -speed;
+          break;
+        case 'd':
+          motion[0] = speed;
+          break;
+        case 'w':
+          motion[1] = -speed;
+          break;
+        case 's':
+          motion[1] = speed;
+          break;
+        case ' ':
+          placingBombs = true;
+          break;
+        default:
+          break;
+      }
   }
 });
 
 window.addEventListener('keyup', e => {
-  switch (e.key) {
-    case 'a':
-    case 'd':
-      motion[0] = 0;
+  switch (screen) {
+    case 'LOAD':
+      switch (e.key) {
+        case ' ':
+          screen = 'PLAY';
+          break;
+      }
       break;
-    case 'w':
-    case 's':
-      motion[1] = 0;
-      break;
-    case ' ':
-      placingBombs = false;
-      break;
-    default:
-      break;
+    case 'PLAY':
+      switch (e.key) {
+        case 'a':
+        case 'd':
+          motion[0] = 0;
+          break;
+        case 'w':
+        case 's':
+          motion[1] = 0;
+          break;
+        case ' ':
+          placingBombs = false;
+          break;
+        default:
+          break;
+      }
   }
+});
+
+window.addEventListener('mousemove', e => {
+  if (edit) {
+    let x = Math.floor(e.pageX / TILESIZE);
+    let y = Math.floor(e.pageY / TILESIZE);
+    blocks[y][x]++;
+    if (blocks[y][x] == 3) {
+      blocks[y][x] = 0;
+    }
+  }
+});
+
+window.addEventListener('mousedown', () => {
+  edit = true;
+});
+
+window.addEventListener('mouseup', () => {
+  edit = false;
 });
 
 function timerloop() {
   tick++;
-  if (player[0] + motion[0] < 0) {
-    player[0] = 0;
-  } else if (player[0] + motion[0] > XTILES - 1) {
-    player[0] = XTILES - 1;
-  } else {
-    if (
-      blocks[Math.round(player[1])][Math.round(player[0] + motion[0])] === 0
-    ) {
-      player[0] += motion[0];
-    }
-  }
-
-  if (player[1] + motion[1] < 0) {
-    player[1] = 0;
-  } else if (player[1] + motion[1] > YTILES - 1) {
-    player[1] = YTILES - 1;
-  } else {
-    if (
-      blocks[Math.round(player[1] + motion[1])][Math.round(player[0])] === 0
-    ) {
-      player[1] += motion[1];
-    }
-  }
-
-  if (placingBombs && bombs.length < maxBombs) {
-    if (
-      bombs.filter(
-        bomb =>
-          bomb[0] === Math.round(player[0]) && bomb[1] === Math.round(player[1])
-      ).length === 0
-    ) {
-      bombs.push([Math.round(player[0]), Math.round(player[1]), 3 * FPS]);
-    }
-  }
-  for (let i = 0; i < particles.length; i++) {
-    if (particles[i][0] < 0 || particles[i][0] > XTILES) {
-      particles[i][2] = -particles[i][2] / 2;
-    } else {
-      if (
-        blocks[Math.round(particles[i][1])][
-          Math.round(particles[i][0] + particles[i][2])
-        ] === 0
-      ) {
-        particles[i][0] += particles[i][2];
-      } else {
-        particles[i][2] = -particles[i][2] / 2;
+  switch (screen) {
+    case 'LOAD':
+      ctx.clearRect(0, 0, canv.width, canv.height);
+      drawBoard(back);
+      ctx.fillStyle = 'white';
+      ctx.font = '20px calibri';
+      ctx.fillText('CONNECTING... ' + (id !== null ? 'CONNECTED' : ''), 50, 60);
+      ctx.fillText(
+        'LOADING GAME... ' +
+          loadingPercent +
+          '%' +
+          (loadingPercent === 100 ? '! READY' : ''),
+        50,
+        80
+      );
+      if (loadingPercent === 100) {
+        ctx.fillText(
+          'Waiting for other players... press SPACE to begin!',
+          80,
+          100
+        );
       }
-    }
-    if (particles[i][1] < 0 || particles[i][1] > YTILES) {
-      particles[i][3] = -particles[i][3] / 2;
-    } else {
-      if (
-        blocks[Math.round(particles[i][1] + particles[i][3])][
-          Math.round(particles[i][0])
-        ] === 0
-      ) {
-        particles[i][1] += particles[i][3];
-      } else {
-        particles[i][3] = -particles[i][3] / 2;
+      for (let i = 0; i < 6; i++) {
+        drawCharSelect(
+          5 * TILESIZE + i * TILESIZE,
+          3 * TILESIZE,
+          i,
+          char === i ? false : true,
+          false
+        );
       }
-      particles[i][1] += particles[i][3];
-    }
-  }
-
-  for (let i = 0; i < explosions.length; i++) {
-    explosions[i][2]--;
-    for (let j = 0; j < bombs.length; j++) {
-      if (
-        explosions[i][0] === bombs[j][0] &&
-        explosions[i][1] === bombs[j][1]
-      ) {
-        explodeBomb(bombs.splice(j, 1)[0]);
+      break;
+    case 'PLAY':
+      current[0] = Math.floor(player[0] + 0.5);
+      current[1] = Math.floor(player[1] + 0.5);
+      if (motion[0] !== 0) {
+        if (blocks[current[1]][Math.round(player[0] + motion[0])] === 0) {
+          player[0] += motion[0];
+        }
       }
-    }
-    if (explosions[i][2] < 1) {
-      explosions.shift();
-    }
-  }
+      if (motion[1] !== 0) {
+        if (blocks[Math.round(player[1] + motion[1])][current[0]] === 0) {
+          player[1] += motion[1];
+        }
+      }
 
-  for (let i = 0; i < particles.length; i++) {
-    particles[i][4]--;
-    if (particles[i][4] < 1) {
-      particles.shift();
-    }
-  }
-  for (let i = 0; i < bombs.length; i++) {
-    bombs[i][2]--;
-    if (bombs[i][2] < 1) {
-      explodeBomb(bombs.splice(i, 1)[0]);
-    }
-  }
+      if (placingBombs && bombs.length < maxBombs) {
+        if (
+          bombs.filter(
+            bomb =>
+              bomb[0] === Math.round(player[0]) &&
+              bomb[1] === Math.round(player[1])
+          ).length === 0
+        ) {
+          bombs.push([Math.round(player[0]), Math.round(player[1]), 3 * FPS]);
+        }
+      }
+      for (let i = 0; i < particles.length; i++) {
+        if (particles[i][0] < 0 || particles[i][0] > XTILES) {
+          particles[i][2] = -particles[i][2] / 2;
+        } else {
+          if (
+            blocks[Math.round(particles[i][1])][
+              Math.round(particles[i][0] + particles[i][2])
+            ] === 0
+          ) {
+            particles[i][0] += particles[i][2];
+          } else {
+            particles[i][2] = -particles[i][2] / 2;
+          }
+        }
+        if (particles[i][1] < 0 || particles[i][1] > YTILES) {
+          particles[i][3] = -particles[i][3] / 2;
+        } else {
+          if (
+            blocks[Math.round(particles[i][1] + particles[i][3])][
+              Math.round(particles[i][0])
+            ] === 0
+          ) {
+            particles[i][1] += particles[i][3];
+          } else {
+            particles[i][3] = -particles[i][3] / 2;
+          }
+          particles[i][1] += particles[i][3];
+        }
+      }
 
-  ctx.clearRect(0, 0, canv.width, canv.height);
-  drawBoard();
-  drawParticles();
-  drawPlayer();
-  drawBombs();
-  drawExplosions();
-  fillInfo();
+      for (let i = 0; i < explosions.length; i++) {
+        explosions[i][2]--;
+        for (let j = 0; j < bombs.length; j++) {
+          if (
+            explosions[i][0] === bombs[j][0] &&
+            explosions[i][1] === bombs[j][1]
+          ) {
+            explodeBomb(bombs.splice(j, 1)[0]);
+          }
+        }
+        if (explosions[i][2] < 1) {
+          explosions.shift();
+        }
+      }
+
+      for (let i = 0; i < particles.length; i++) {
+        particles[i][4]--;
+        if (particles[i][4] < 1) {
+          particles.shift();
+        }
+      }
+      for (let i = 0; i < bombs.length; i++) {
+        bombs[i][2]--;
+        if (bombs[i][2] < 1) {
+          explodeBomb(bombs.splice(i, 1)[0]);
+        }
+      }
+      ctx.clearRect(0, 0, canv.width, canv.height);
+      drawBoard(board);
+      drawParticles();
+      drawBombs();
+      drawPlayer();
+      drawExplosions();
+      fillInfo();
+      break;
+    default:
+      break;
+  }
 }
+
+startTimer();
+
+server.on('acceptcon', data => {
+  id = data;
+  console.log('connection confirmed!', data);
+});
+
+server.on('state', data => {
+  if (screen === 'LOAD') {
+  }
+});
