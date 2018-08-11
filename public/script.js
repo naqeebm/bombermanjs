@@ -1,5 +1,7 @@
-console.log('connecting to server http://localhost:18081');
-const server = io.connect('http://localhost:18081');
+// console.log('connecting to server http://localhost:18081');
+// const server = io.connect('http://localhost:18081');
+console.log('connecting to server http://178.128.45.249:18081');
+const server = io.connect('http://178.128.45.249:18081');
 let id = null;
 
 const canv = document.getElementById('canv');
