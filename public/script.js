@@ -661,6 +661,11 @@ function removePowerup(x, y, apply = false) {
   }
 }
 
+function setNewMoveDxDy(dx, dy) {
+  motion[0] = Math.sign(Math.round(dx / 20)) * speed;
+  motion[1] = Math.sign(Math.round(dy / 20)) * speed;
+}
+
 window.addEventListener('keypress', e => {
   switch (e.key) {
     case 'x':
@@ -721,31 +726,74 @@ window.addEventListener('keydown', e => {
 });
 
 window.addEventListener('touchstart', e => {
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    if (
-      checkProx(
-        e.changedTouches[i].pageX,
-        e.changedTouches[i].pageY,
-        mobileButtons[1][0],
-        mobileButtons[1][1],
-        mobileButtons[1][2]
-      )
-    ) {
-      placingBombs = true;
-    } else {
-      mobileButtons[0][0] = e.changedTouches[i].pageX;
-      mobileButtons[0][1] = e.changedTouches[i].pageY;
-      touch[0] = e.changedTouches[i].pageX - mobileButtons[0][0];
-      touch[1] = e.changedTouches[i].pageY - mobileButtons[0][1];
+  for (let j = 0; j < mobileButtons.length; j++) {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (
+        checkProx(
+          e.changedTouches[i].pageX,
+          e.changedTouches[i].pageY,
+          mobileButtons[j][0],
+          mobileButtons[j][1],
+          100
+        )
+      ) {
+        if (j === 1) {
+          if (screen === 'PLAY') {
+            placingBombs = true;
+          } else if (screen === 'LOAD') {
+            ready = !ready;
+          }
+        } else {
+          touch[0] = e.changedTouches[i].pageX - mobileButtons[0][0];
+          touch[1] = e.changedTouches[i].pageY - mobileButtons[0][1];
+          if (screen === 'PLAY') {
+            setNewMoveDxDy(touch[0], touch[1]);
+          } else if (screen === 'LOAD') {
+            if (Math.sign(touch[0]) < 0) {
+              if (!ready) {
+                changeChar(char - 1);
+                if (char < 0) {
+                  changeChar(5);
+                }
+              }
+            } else {
+              if (!ready) {
+                changeChar(char + 1);
+                if (char > 5) {
+                  changeChar(0);
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 });
+
 window.addEventListener('touchmove', e => {
-  if (touch[0] !== null && touch[1] !== null) {
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      if (mobileButtons[0][0] !== null && mobileButtons[0][1] !== null) {
-        touch[0] = e.changedTouches[i].pageX - mobileButtons[0][0];
-        touch[1] = e.changedTouches[i].pageY - mobileButtons[0][1];
+  if (screen === 'PLAY') {
+    for (let j = 0; j < mobileButtons.length; j++) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (
+          checkProx(
+            e.changedTouches[i].pageX,
+            e.changedTouches[i].pageY,
+            mobileButtons[j][0],
+            mobileButtons[j][1],
+            100
+          )
+        ) {
+          if (j == 0) {
+            touch[0] = e.changedTouches[i].pageX - mobileButtons[0][0];
+            touch[1] = e.changedTouches[i].pageY - mobileButtons[0][1];
+            if (
+              Math.sign(touch[0]) !== Math.sign(motion[0]) ||
+              Math.sign(touch[1]) !== Math.sign(motion[1])
+            )
+              setNewMoveDxDy(touch[0], touch[1]);
+          }
+        }
       }
     }
   }
@@ -764,10 +812,9 @@ window.addEventListener('touchend', e => {
     ) {
       placingBombs = false;
     }
-    mobileButtons[0][0] = null;
-    mobileButtons[0][1] = null;
     touch[0] = null;
     touch[1] = null;
+    setNewMoveDxDy(0, 0);
   }
 });
 
@@ -795,42 +842,63 @@ function drawCircle(x, y, r, lw = 1, stroke = null, fill = null) {
 }
 
 function drawMobileControls() {
-  if (mobileButtons[0][0] !== null && mobileButtons[0][1] !== null) {
-    drawCircle(mobileButtons[0][0], mobileButtons[0][1], 30, 5, 'grey');
-    ctx.strokeStyle = 'grey';
-    ctx.lineWidth = 4;
-    ctx.moveTo(mobileButtons[0][0], mobileButtons[0][1]);
-    ctx.lineTo(mobileButtons[0][0] + touch[0], mobileButtons[0][1] + touch[1]);
-    ctx.stroke();
-    drawCircle(mobileButtons[0][0], mobileButtons[0][1], 5, 5, 'blue');
-    drawCircle(
-      mobileButtons[0][0] + touch[0],
-      mobileButtons[0][1] + touch[1],
-      20,
-      5,
-      'lightgrey',
-      'rgba(128,128,128,0.5)'
-    );
-    drawCircle(
-      mobileButtons[0][0] + touch[0],
-      mobileButtons[0][1] + touch[1],
-      5,
-      5,
-      'grey',
-      'rgba(128,128,128,0.5)'
-    );
-  }
+  drawCircle(mobileButtons[0][0], mobileButtons[0][1], 30, 5, 'grey');
+  ctx.strokeStyle = 'grey';
+  ctx.lineWidth = 4;
+  ctx.moveTo(mobileButtons[0][0], mobileButtons[0][1]);
+  ctx.lineTo(mobileButtons[0][0] + touch[0], mobileButtons[0][1] + touch[1]);
+  ctx.stroke();
+  drawCircle(
+    mobileButtons[0][0] + touch[0],
+    mobileButtons[0][1] + touch[1],
+    20,
+    5,
+    'lightgrey',
+    'rgba(128,128,128,0.5)'
+  );
   drawCircle(
     mobileButtons[1][0],
     mobileButtons[1][1],
     20,
     5,
     'lightgrey',
-    placingBombs ? 'rgba(255,0,0,0.5)' : null
+    screen === 'PLAY'
+      ? placingBombs
+        ? 'rgba(255,0,0,0.5)'
+        : null
+      : ready
+        ? 'green'
+        : 'lime'
   );
   ctx.fillStyle = 'white';
   ctx.font = '12px arial';
-  ctx.fillText('✕', mobileButtons[1][0] - 5, mobileButtons[1][1] + 5);
+  ctx.fillText(
+    screen === 'PLAY' ? 'B' : 'R',
+    mobileButtons[1][0] - 5,
+    mobileButtons[1][1] + 5
+  );
+  if (screen === 'PLAY') {
+    ctx.fillText(
+      '^',
+      mobileButtons[0][0] - 2,
+      mobileButtons[0][1] - mobileButtons[0][2]
+    );
+    ctx.fillText(
+      'v',
+      mobileButtons[0][0] - 5,
+      mobileButtons[0][1] + mobileButtons[0][2] + 7
+    );
+  }
+  ctx.fillText(
+    '<',
+    mobileButtons[0][0] - mobileButtons[0][2] - 10,
+    mobileButtons[0][1] + 5
+  );
+  ctx.fillText(
+    '>',
+    mobileButtons[0][0] + mobileButtons[0][2] + 4,
+    mobileButtons[0][1] + 5
+  );
 }
 
 window.addEventListener('keyup', e => {
@@ -910,7 +978,7 @@ window.addEventListener('mouseup', e => {
       let x = Math.floor(e.pageX / TILESIZE);
       let y = Math.floor(e.pageY / TILESIZE);
       if (x > 4 && x < 11 && y === 4) {
-        char = x - 5;
+        changeChar(x - 5);
         // console.log('new char', char);
       }
       break;
