@@ -663,8 +663,13 @@ function removePowerup(x, y, apply = false) {
 }
 
 function setNewMoveDxDy(dx, dy) {
-  motion[0] = Math.sign(Math.round(dx / 20)) * speed;
-  motion[1] = Math.sign(Math.round(dy / 20)) * speed;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    motion[0] = Math.sign(Math.round(dx / 20)) * speed;
+    motion[1] = 0;
+  } else {
+    motion[0] = 0;
+    motion[1] = Math.sign(Math.round(dy / 20)) * speed;
+  }
 }
 
 window.addEventListener('keypress', e => {
@@ -775,31 +780,31 @@ window.addEventListener('touchstart', e => {
 
 window.addEventListener('touchmove', e => {
   e.preventDefault();
-  // if (screen === 'PLAY') {
-  //   for (let j = 0; j < mobileButtons.length; j++) {
-  //     for (let i = 0; i < e.changedTouches.length; i++) {
-  //       if (
-  //         checkProx(
-  //           e.changedTouches[i].pageX,
-  //           e.changedTouches[i].pageY,
-  //           mobileButtons[j][0],
-  //           mobileButtons[j][1],
-  //           100
-  //         )
-  //       ) {
-  //         if (j == 0) {
-  //           touch[0] = e.changedTouches[i].pageX - mobileButtons[0][0];
-  //           touch[1] = e.changedTouches[i].pageY - mobileButtons[0][1];
-  //           if (
-  //             Math.sign(touch[0]) !== Math.sign(motion[0]) ||
-  //             Math.sign(touch[1]) !== Math.sign(motion[1])
-  //           )
-  //             setNewMoveDxDy(touch[0], touch[1]);
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
+  if (screen === 'PLAY') {
+    for (let j = 0; j < mobileButtons.length; j++) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (
+          checkProx(
+            e.changedTouches[i].pageX,
+            e.changedTouches[i].pageY,
+            mobileButtons[j][0],
+            mobileButtons[j][1],
+            100
+          )
+        ) {
+          if (j == 0) {
+            touch[0] = e.changedTouches[i].pageX - mobileButtons[0][0];
+            touch[1] = e.changedTouches[i].pageY - mobileButtons[0][1];
+            if (
+              Math.sign(touch[0]) !== Math.sign(motion[0]) ||
+              Math.sign(touch[1]) !== Math.sign(motion[1])
+            )
+              setNewMoveDxDy(touch[0], touch[1]);
+          }
+        }
+      }
+    }
+  }
 });
 
 window.addEventListener('touchend', e => {
