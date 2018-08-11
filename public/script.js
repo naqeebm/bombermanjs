@@ -17,6 +17,18 @@ canv.width = window.innerWidth;
 const h = canv.height;
 const w = canv.width;
 
+let portraitMode = false;
+let touch = null;
+let mobileButtons = null;
+if (w < h) {
+  portraitMode = true;
+  mobileButtons = [
+    [canv.width - 60, canv.height - 60, 30],
+    [60, canv.height - 60, 20]
+  ];
+  touch = [0, 0];
+}
+
 let screen = 'LOAD';
 let loadingPercent = 0;
 const XTILES = 16;
@@ -100,6 +112,15 @@ function stopTimer() {
     clearInterval(timer);
     timer = null;
     console.log('stopped timer');
+  }
+}
+
+function checkProx(x, y, x1, y1, leeway) {
+  len = Math.sqrt(Math.pow(x - x1, 2) + Math.pow(y - y1, 2));
+  if (Math.abs(len) < leeway) {
+    return true;
+  } else {
+    return false;
   }
 }
 
@@ -502,20 +523,16 @@ function changeBlock(y, x, val) {
       case 2:
       case 3:
         powerups.push([x, y, 0]);
-        console.log('powerup', powerups[powerups.length - 1]);
         break;
       case 4:
       case 5:
         powerups.push([x, y, 1]);
-        console.log('powerup', powerups[powerups.length - 1]);
         break;
       case 6:
         powerups.push([x, y, 2]);
-        console.log('powerup', powerups[powerups.length - 1]);
         break;
       case 7:
         powerups.push([x, y, 3]);
-        console.log('powerup', powerups[powerups.length - 1]);
         break;
     }
   }
@@ -616,7 +633,6 @@ function drawPlayerOnPlayerBoard(name, x, y, player) {
 }
 
 function removePowerup(x, y, apply = false) {
-  console.log(x, y, blocks[y][x]);
   let i = 0;
   while (
     i < powerups.length &&
@@ -704,6 +720,57 @@ window.addEventListener('keydown', e => {
   }
 });
 
+window.addEventListener('touchstart', e => {
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    if (
+      checkProx(
+        e.changedTouches[i].pageX,
+        e.changedTouches[i].pageY,
+        mobileButtons[1][0],
+        mobileButtons[1][1],
+        mobileButtons[1][2]
+      )
+    ) {
+      placingBombs = true;
+    } else {
+      mobileButtons[0][0] = e.changedTouches[i].pageX;
+      mobileButtons[0][1] = e.changedTouches[i].pageY;
+      touch[0] = e.changedTouches[i].pageX - mobileButtons[0][0];
+      touch[1] = e.changedTouches[i].pageY - mobileButtons[0][1];
+    }
+  }
+});
+window.addEventListener('touchmove', e => {
+  if (touch[0] !== null && touch[1] !== null) {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (mobileButtons[0][0] !== null && mobileButtons[0][1] !== null) {
+        touch[0] = e.changedTouches[i].pageX - mobileButtons[0][0];
+        touch[1] = e.changedTouches[i].pageY - mobileButtons[0][1];
+      }
+    }
+  }
+});
+
+window.addEventListener('touchend', e => {
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    if (
+      checkProx(
+        e.changedTouches[i].pageX,
+        e.changedTouches[i].pageY,
+        mobileButtons[1][0],
+        mobileButtons[1][1],
+        mobileButtons[1][2]
+      )
+    ) {
+      placingBombs = false;
+    }
+    mobileButtons[0][0] = null;
+    mobileButtons[0][1] = null;
+    touch[0] = null;
+    touch[1] = null;
+  }
+});
+
 function changeChar(newChar) {
   char = newChar;
   server.emit('changeChar', char);
@@ -712,6 +779,58 @@ function changeChar(newChar) {
 function playerDead() {
   console.log('DEAD');
   alive = false;
+}
+
+function drawCircle(x, y, r, lw = 1, stroke = null, fill = null) {
+  if (fill !== null || stroke !== null) {
+    ctx.strokeStyle = stroke;
+    ctx.fillStyle = fill;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, TWOPI);
+    ctx.closePath();
+    if (fill !== null) ctx.fill();
+    if (stroke !== null) ctx.stroke();
+  }
+}
+
+function drawMobileControls() {
+  if (mobileButtons[0][0] !== null && mobileButtons[0][1] !== null) {
+    drawCircle(mobileButtons[0][0], mobileButtons[0][1], 30, 5, 'grey');
+    ctx.strokeStyle = 'grey';
+    ctx.lineWidth = 4;
+    ctx.moveTo(mobileButtons[0][0], mobileButtons[0][1]);
+    ctx.lineTo(mobileButtons[0][0] + touch[0], mobileButtons[0][1] + touch[1]);
+    ctx.stroke();
+    drawCircle(mobileButtons[0][0], mobileButtons[0][1], 5, 5, 'blue');
+    drawCircle(
+      mobileButtons[0][0] + touch[0],
+      mobileButtons[0][1] + touch[1],
+      20,
+      5,
+      'lightgrey',
+      'rgba(128,128,128,0.5)'
+    );
+    drawCircle(
+      mobileButtons[0][0] + touch[0],
+      mobileButtons[0][1] + touch[1],
+      5,
+      5,
+      'grey',
+      'rgba(128,128,128,0.5)'
+    );
+  }
+  drawCircle(
+    mobileButtons[1][0],
+    mobileButtons[1][1],
+    20,
+    5,
+    'lightgrey',
+    placingBombs ? 'rgba(255,0,0,0.5)' : null
+  );
+  ctx.fillStyle = 'white';
+  ctx.font = '12px arial';
+  ctx.fillText('✕', mobileButtons[1][0] - 5, mobileButtons[1][1] + 5);
 }
 
 window.addEventListener('keyup', e => {
@@ -1028,10 +1147,14 @@ function timerloop() {
       drawPlayers(players.filter(pl => pl.id !== id));
       drawPlayer(player[0], player[1], motion[0], motion[1], char);
       drawExplosions();
+
       fillInfo();
       break;
     default:
       break;
+  }
+  if (portraitMode) {
+    drawMobileControls();
   }
 }
 

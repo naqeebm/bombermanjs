@@ -65,6 +65,11 @@ io.on('connection', con => {
       if (players.filter(pl => pl.ready).length === players.length) {
         state = 'GAME';
         console.log('state: GAME');
+        for (let i = 0; i < blocks.length; i++) {
+          for (let j = 0; j < blocks[i].length; j++) {
+            if (blocks[j][i] === -1) blocks[j][i] = 0;
+          }
+        }
         io.sockets.emit('allReady', blocks);
       }
     }
