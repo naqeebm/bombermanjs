@@ -311,6 +311,12 @@ function fillInfo() {
   }
 }
 
+function timeoutExplosion(funct, timeout) {
+  setTimeout(() => {
+    funct();
+  }, timeout);
+}
+
 function explodeBomb(bomb) {
   let count = 1;
   let flags = [false, false, false, false];
@@ -318,9 +324,9 @@ function explodeBomb(bomb) {
   while (count < bomb[3]) {
     if (!flags[0]) {
       if (blocks[bomb[1] - count][bomb[0]] === 0) {
-        addExplosion([bomb[0], bomb[1] - count, FPS - count * 3, 2]);
+        addExplosion([bomb[0], bomb[1] - count, FPS - count * 3, 2], count);
       } else if (blocks[bomb[1] - count][bomb[0]] === 2) {
-        addExplosion([bomb[0], bomb[1] - count, FPS - count * 3, 4]);
+        addExplosion([bomb[0], bomb[1] - count, FPS - count * 3, 4], count);
         changeBlock(bomb[1] - count, bomb[0], 0);
         flags[0] = true;
       } else {
@@ -329,9 +335,9 @@ function explodeBomb(bomb) {
     }
     if (!flags[1]) {
       if (blocks[bomb[1]][bomb[0] - count] === 0) {
-        addExplosion([bomb[0] - count, bomb[1], FPS - count * 3, 3]);
+        addExplosion([bomb[0] - count, bomb[1], FPS - count * 3, 3], count);
       } else if (blocks[bomb[1]][bomb[0] - count] === 2) {
-        addExplosion([bomb[0] - count, bomb[1], FPS - count * 3, 5]);
+        addExplosion([bomb[0] - count, bomb[1], FPS - count * 3, 5], count);
         changeBlock(bomb[1], bomb[0] - count, 0);
         flags[1] = true;
       } else {
@@ -340,9 +346,9 @@ function explodeBomb(bomb) {
     }
     if (!flags[2]) {
       if (blocks[bomb[1] + count][bomb[0]] === 0) {
-        addExplosion([bomb[0], bomb[1] + count, FPS - count * 3, 2]);
+        addExplosion([bomb[0], bomb[1] + count, FPS - count * 3, 2], count);
       } else if (blocks[bomb[1] + count][bomb[0]] === 2) {
-        addExplosion([bomb[0], bomb[1] + count, FPS - count * 3, 4]);
+        addExplosion([bomb[0], bomb[1] + count, FPS - count * 3, 4], count);
         changeBlock(bomb[1] + count, bomb[0], 0);
         flags[2] = true;
       } else {
@@ -351,9 +357,9 @@ function explodeBomb(bomb) {
     }
     if (!flags[3]) {
       if (blocks[bomb[1]][bomb[0] + count] === 0) {
-        addExplosion([bomb[0] + count, bomb[1], FPS - count * 3, 3]);
+        addExplosion([bomb[0] + count, bomb[1], FPS - count * 3, 3], count);
       } else if (blocks[bomb[1]][bomb[0] + count] === 2) {
-        addExplosion([bomb[0] + count, bomb[1], FPS - count * 3, 5]);
+        addExplosion([bomb[0] + count, bomb[1], FPS - count * 3, 5], count);
         changeBlock(bomb[1], bomb[0] + count, 0);
         flags[3] = true;
       } else {
@@ -364,9 +370,9 @@ function explodeBomb(bomb) {
     count++;
   }
   if (explosionLength > 0) {
-    addExplosion([bomb[0], bomb[1], FPS, 1]);
+    addExplosion([bomb[0], bomb[1], FPS, 1], 0);
   } else {
-    addExplosion([bomb[0], bomb[1], FPS, 1]);
+    addExplosion([bomb[0], bomb[1], FPS, 1], 0);
   }
 
   for (let x = bomb[0] - 2; x < bomb[0] + 2; x += 1) {
@@ -387,13 +393,20 @@ function changeBlock(y, x, val) {
   server.emit('blockChange', { x, y, val });
 }
 
-function addExplosion(data) {
+function addExplosion(data, count = 0) {
   if (
     explosions.filter(expl => expl[0] === data[0] && expl[1] === data[1])
       .length === 0
   ) {
-    server.emit('addExplosion', data);
-    explosions.push(data);
+    if (count === 0) {
+      server.emit('addExplosion', data);
+      explosions.push(data);
+    } else {
+      timeoutExplosion(() => {
+        server.emit('addExplosion', data);
+        explosions.push(data);
+      }, count * 100);
+    }
   }
 }
 
@@ -754,7 +767,7 @@ function timerloop() {
       }
 
       for (let i = 0; i < explosions.length; i++) {
-        explosions[i][2]--;
+        explosions[i][2] -= 2;
         for (let j = 0; j < bombs.length; j++) {
           if (
             explosions[i][0] === bombs[j][0] &&
