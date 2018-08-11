@@ -23,8 +23,8 @@ let mobileButtons = null;
 if (w < h) {
   portraitMode = true;
   mobileButtons = [
-    [canv.width - 120, canv.height - 120, 30],
-    [60, canv.height - 60, 20]
+    [canv.width - 90, canv.height - 90, 30],
+    [90, canv.height - 90, 20]
   ];
   touch = [0, 0];
 }
@@ -775,31 +775,31 @@ window.addEventListener('touchstart', e => {
 
 window.addEventListener('touchmove', e => {
   e.preventDefault();
-  if (screen === 'PLAY') {
-    for (let j = 0; j < mobileButtons.length; j++) {
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        if (
-          checkProx(
-            e.changedTouches[i].pageX,
-            e.changedTouches[i].pageY,
-            mobileButtons[j][0],
-            mobileButtons[j][1],
-            100
-          )
-        ) {
-          if (j == 0) {
-            touch[0] = e.changedTouches[i].pageX - mobileButtons[0][0];
-            touch[1] = e.changedTouches[i].pageY - mobileButtons[0][1];
-            if (
-              Math.sign(touch[0]) !== Math.sign(motion[0]) ||
-              Math.sign(touch[1]) !== Math.sign(motion[1])
-            )
-              setNewMoveDxDy(touch[0], touch[1]);
-          }
-        }
-      }
-    }
-  }
+  // if (screen === 'PLAY') {
+  //   for (let j = 0; j < mobileButtons.length; j++) {
+  //     for (let i = 0; i < e.changedTouches.length; i++) {
+  //       if (
+  //         checkProx(
+  //           e.changedTouches[i].pageX,
+  //           e.changedTouches[i].pageY,
+  //           mobileButtons[j][0],
+  //           mobileButtons[j][1],
+  //           100
+  //         )
+  //       ) {
+  //         if (j == 0) {
+  //           touch[0] = e.changedTouches[i].pageX - mobileButtons[0][0];
+  //           touch[1] = e.changedTouches[i].pageY - mobileButtons[0][1];
+  //           if (
+  //             Math.sign(touch[0]) !== Math.sign(motion[0]) ||
+  //             Math.sign(touch[1]) !== Math.sign(motion[1])
+  //           )
+  //             setNewMoveDxDy(touch[0], touch[1]);
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 });
 
 window.addEventListener('touchend', e => {
