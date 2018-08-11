@@ -1,7 +1,7 @@
-console.log('connecting to server http://localhost:18081');
-const server = io.connect('http://localhost:18081');
-// console.log('connecting to server http://178.128.45.249:18081');
-// const server = io.connect('http://178.128.45.249:18081');
+// console.log('connecting to server http://localhost:18081');
+// const server = io.connect('http://localhost:18081');
+console.log('connecting to server http://178.128.45.249:18081');
+const server = io.connect('http://178.128.45.249:18081');
 let id = null;
 
 const canv = document.getElementById('canv');
@@ -35,6 +35,7 @@ const XTILES = 16;
 const YTILES = 16;
 const TILESIZE = 40;
 const DRAWOFFSET = 4;
+const scale = Math.min(h, w) / (XTILES * TILESIZE);
 
 let edit = false;
 let ready = false;
@@ -742,6 +743,7 @@ window.addEventListener('touchstart', e => {
             placingBombs = true;
           } else if (screen === 'LOAD') {
             ready = !ready;
+            server.emit('readyChange', ready);
           }
         } else {
           touch[0] = e.changedTouches[i].pageX - mobileButtons[0][0];
@@ -989,9 +991,10 @@ window.addEventListener('mouseup', e => {
 
 function timerloop() {
   tick++;
+  ctx.clearRect(0, 0, canv.width, canv.height);
+  ctx.scale(scale, scale);
   switch (screen) {
     case 'LOAD':
-      ctx.clearRect(0, 0, canv.width, canv.height);
       drawBoard(back);
       ctx.font = '19px arial';
       ctx.fillStyle = 'black';
@@ -1208,7 +1211,6 @@ function timerloop() {
           y: Math.round(player[1] * 10) / 10
         });
       }
-      ctx.clearRect(0, 0, canv.width, canv.height);
       drawBoard(blocks);
       drawParticles();
       drawBombs();
@@ -1216,11 +1218,14 @@ function timerloop() {
       drawPlayer(player[0], player[1], motion[0], motion[1], char);
       drawExplosions();
 
-      fillInfo();
+      // fillInfo();
+
       break;
     default:
       break;
   }
+  ctx.scale(1 / scale, 1 / scale);
+
   if (portraitMode) {
     drawMobileControls();
   }
