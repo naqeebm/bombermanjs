@@ -23,7 +23,7 @@ let mobileButtons = null;
 if (w < h) {
   portraitMode = true;
   mobileButtons = [
-    [canv.width - 60, canv.height - 60, 30],
+    [canv.width - 120, canv.height - 120, 30],
     [60, canv.height - 60, 20]
   ];
   touch = [0, 0];
@@ -774,6 +774,7 @@ window.addEventListener('touchstart', e => {
 });
 
 window.addEventListener('touchmove', e => {
+  e.preventDefault();
   if (screen === 'PLAY') {
     for (let j = 0; j < mobileButtons.length; j++) {
       for (let i = 0; i < e.changedTouches.length; i++) {
