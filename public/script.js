@@ -1,7 +1,7 @@
-// console.log('connecting to server http://localhost:18081');
-// const server = io.connect('http://localhost:18081');
-console.log('connecting to server http://178.128.45.249:18081');
-const server = io.connect('http://178.128.45.249:18081');
+console.log('connecting to server http://localhost:18081');
+const server = io.connect('http://localhost:18081');
+// console.log('connecting to server http://178.128.45.249:18081');
+// const server = io.connect('http://178.128.45.249:18081');
 let id = null;
 
 const canv = document.getElementById('canv');
@@ -282,20 +282,38 @@ function drawChar(x, y, r, col, fillCol = null) {
   ctx.stroke();
 }
 
-function drawPlayer(x, y, dx, dy, char, dead) {
+function drawPlayer(x, y, dx, dy, char, alive) {
   let offset = 2 * Math.cos((tick / FPS) * (char + 1));
   // drawChar(player[0], player[1], TILESIZE / 3, player[2]);
   ctx.drawImage(
     img,
-    !dead ? 2 + (dy < 0 ? 2 : dx > 0 ? 1 : 0) * 40 : 0,
+    2 + (dy < 0 ? 2 : dx > 0 ? 1 : 0) * 40,
     42 + 40 * char,
     37,
     37,
-    x * TILESIZE + offset,
-    y * TILESIZE + offset / 2,
+    x * TILESIZE + (alive ? offset : 0),
+    y * TILESIZE + (alive ? offset / 2 : 0),
     TILESIZE,
     TILESIZE
   );
+  if (!alive) {
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'red';
+    ctx.moveTo(x * TILESIZE + offset, y * TILESIZE);
+    ctx.lineTo(x * TILESIZE + offset + TILESIZE, y * TILESIZE + TILESIZE);
+    ctx.stroke();
+    ctx.drawImage(
+      img,
+      2,
+      42 + 40 * 1,
+      37,
+      37,
+      x * TILESIZE + offset,
+      (y - 0.5) * TILESIZE + 2 * offset + TILESIZE / 3,
+      TILESIZE / 2,
+      TILESIZE / 2
+    );
+  }
 }
 
 function drawPlayers(players) {
@@ -305,7 +323,8 @@ function drawPlayers(players) {
       players[i].y,
       players[i].dx,
       players[i].dy,
-      players[i].char
+      players[i].char,
+      players[i].alive
     );
   }
 }
@@ -536,6 +555,7 @@ function changeBlock(y, x, val) {
         powerups.push([x, y, 3]);
         break;
     }
+    server.emit('powerupsChanged',powerups);
   }
   blocks[y][x] = val;
   server.emit('blockChange', { x, y, val });
@@ -666,9 +686,13 @@ function setNewMoveDxDy(dx, dy) {
   if (Math.abs(dx) > Math.abs(dy)) {
     motion[0] = Math.sign(Math.round(dx / 20)) * speed;
     motion[1] = 0;
+    server.emit('dx', dx);
+    server.emit('dy', dy);
   } else {
     motion[0] = 0;
     motion[1] = Math.sign(Math.round(dy / 20)) * speed;
+    server.emit('dx', dx);
+    server.emit('dy', dy);
   }
 }
 
@@ -834,6 +858,7 @@ function changeChar(newChar) {
 function playerDead() {
   console.log('DEAD');
   alive = false;
+  server.emit('dead', alive);
 }
 
 function drawCircle(x, y, r, lw = 1, stroke = null, fill = null) {
@@ -1212,16 +1237,18 @@ function timerloop() {
         }
       }
       if (tick % 2 === 0) {
-        server.emit('move', {
-          x: Math.round(player[0] * 10) / 10,
-          y: Math.round(player[1] * 10) / 10
-        });
+        if (alive) {
+          server.emit('move', {
+            x: Math.round(player[0] * 10) / 10,
+            y: Math.round(player[1] * 10) / 10
+          });
+        }
       }
       drawBoard(blocks);
       drawParticles();
       drawBombs();
       drawPlayers(players.filter(pl => pl.id !== id));
-      drawPlayer(player[0], player[1], motion[0], motion[1], char);
+      drawPlayer(player[0], player[1], motion[0], motion[1], char, alive);
       drawExplosions();
 
       // fillInfo();
